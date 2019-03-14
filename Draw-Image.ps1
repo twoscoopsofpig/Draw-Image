@@ -162,20 +162,28 @@ if (-not ("Windows.Native.Kernel32" -as [type]))
 # Set arbitrary font for better detail - Credit to /u/Nation_State_Tractor
 function Set-ConsoleFont
 {
+	[Alias("Set-Font")]
 	[CmdletBinding()]
 	param
 	(
-		[Parameter(Mandatory=$true, Position=0)]
-		[string] $Name,
-		[Parameter(Mandatory=$true, Position=1)]
-		[int] $Height
+		[string] $Name = "Consolas",
+		[ValidateRange(5,25)]
+		[int] $Height = 14,
+		[switch] $square
 	)
 
 	$cfi = [Windows.Native.Kernel32]::GetCurrentConsoleFontEx()
 	$cfi.FontIndex = 0
 	$cfi.FontFamily = 0
 	$cfi.FaceName = $Name
-	$cfi.FontWidth = [int]($Height / 2)
+	$cfi.FontWidth = if ($square)
+	{
+		$height
+	}
+	else
+	{
+		[int]($Height / 2)
+	}
 	$cfi.FontHeight = $Height
 	[Windows.Native.Kernel32]::SetCurrentConsoleFontEx($cfi)
 }
@@ -203,9 +211,16 @@ function Draw-Image
 	# Original concepts by /u/punisher1005, and benoitpatra.com
 	param(
 		[String] $img = "https://upload.wikimedia.org/wikipedia/en/f/ff/SuccessKid.jpg",
-		[switch] $return
+		[ValidateRange(5,25)]
+		[int] $pxsize = 8,
+		[switch] $return,
+		[switch] $max
 	)
 
+	if ($max)
+	{
+		Resize-Window -1
+	}
 	Add-Type -AssemblyName "System.Web"
 	Add-Type -AssemblyName "System.Drawing"
 	if ([bool](test-path $img))
@@ -231,6 +246,7 @@ function Draw-Image
 	{
 		md .\PSworking
 	}
+	gci .\PSworking -recurse | rm
 	$imageResizedTarget = "$($(get-item .\PSworking).fullname)\Resized_$imageTarget"
 	$imageTarget = "$($(get-item .\PSworking).fullname)\$imageTarget"
 
@@ -242,6 +258,14 @@ function Draw-Image
 	$bitmap.save($($imageTarget -replace "\\","\\\\"), $myImageCodecInfo, $encoderParams)
 	$bitmap.dispose()
 	$bitmap = [System.Drawing.Bitmap]::FromFile($imageTarget)
+
+	Set-ConsoleFont Terminal -height $pxsize -square
+	if ($Max)
+	{
+		$oldWidth = $host.ui.RawUI.windowsize.width
+		Resize-Window 3
+		while ($host.ui.RawUI.windowsize.width -eq $oldwidth){}
+	}
 
 	# Resize to fit shell (reorganized from https://benoitpatra.com/2014/09/14/resize-image-and-preserve-ratio-with-powershell/)
 	$canvasWidth = [math]::floor($host.ui.RawUI.windowsize.width)
@@ -278,7 +302,6 @@ function Draw-Image
 
 	$color_string = $returnString = ""
 
-	Set-ConsoleFont Terminal 4
 	Foreach ($y in (0..($BitMap.Height-1)))
 	{
 		$color_string += "`n"
@@ -305,7 +328,10 @@ function Draw-Image
 	{
 		rm $imageResizedTarget
 	}
-	rm $imageTarget
+	if (test-path $imageTarget)
+	{
+		rm $imageTarget
+	}
 
 	if ($return)
 	{
@@ -313,11 +339,31 @@ function Draw-Image
 	}
 }
 
+# Resize the console window
+Function Resize-Window
+{
+	Param (
+		[int] $mode = -1
+	)
+	$Signature = @"
+[DllImport("user32.dll")]public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+"@
+	$ShowWindowAsync = Add-Type -MemberDefinition $Signature -Name 'Win32ShowWindowAsync' -Namespace Win32Functions -PassThru
+	$MainWindowHandle = (Get-Process -id $pid).MainWindowHandle
+	if ($mode -eq -1)
+	{
+		$Host.UI.RawUI.WindowSize = New-Object System.Management.Automation.Host.Size(110, 40)
+		$Host.UI.RawUI.BufferSize = New-Object System.Management.Automation.Host.Size(110, 3000)
+		set-font
+		$mode = 9
+	}
+	$null = $ShowWindowAsync::ShowWindowAsync($MainWindowHandle,$mode)
+}
 # SIG # Begin signature block
 # MIIL1wYJKoZIhvcNAQcCoIILyDCCC8QCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUq+j4EnQK+N/Ka39oSVebbv3A
-# lmOgggkzMIIEQzCCAyugAwIBAgITFAAAAALkqAddBvs0iQAAAAAAAjANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUBQtASzLjZ8g0QI2zgCjIIoVR
+# +LagggkzMIIEQzCCAyugAwIBAgITFAAAAALkqAddBvs0iQAAAAAAAjANBgkqhkiG
 # 9w0BAQsFADAgMR4wHAYDVQQDExVTbWl0aCBCdXJnZXNzIFJvb3QgQ0EwHhcNMTgw
 # OTAzMTczMDAzWhcNMjgwOTAzMTc0MDAzWjBWMRMwEQYKCZImiZPyLGQBGRYDbmV0
 # MRwwGgYKCZImiZPyLGQBGRYMc21pdGhidXJnZXNzMSEwHwYDVQQDExhTbWl0aCBC
@@ -371,11 +417,11 @@ function Draw-Image
 # ZXNzIElzc3VpbmcgQ0ECExIAABwcndyQYNoVrooAAAAAHBwwCQYFKw4DAhoFAKB4
 # MBgGCisGAQQBgjcCAQwxCjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQB
 # gjcCAQQwHAYKKwYBBAGCNwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkE
-# MRYEFFS4IckCEmJBu23m0V+W7MlUccsrMA0GCSqGSIb3DQEBAQUABIIBAEsUg50f
-# CIh0qRFsh3cZB7En02HynXVLn27JUcOeeRJkqQK48qVOjtJmo7L+ytf1oHE7Q9+X
-# Qu9yyMK4BxSzyHCafsYBwyCpKxOx2aA6oQVryQilnJUoUxJv+ZhCgDmoiQBnLHa/
-# 0kY+s3Y9t5gaxpp3YCcZi28NJ93AAFkByD4a08lk02N3++pJYqxbkm85Yu034F6M
-# 6KlizSQrCjhKqcRxwFBVHPt18B4dmzp5UyNNhHrk/ckE72Tx5Gy5FJVtBH0WahX4
-# dBGz/RI1ovD+/86wsxOY5usblALy0Kie79tEk7JeqhzlJYnA7DiSNOQXY0R5BBNM
-# 74yDqytJylH+OBA=
+# MRYEFCZjw99pXu/99YNOHJ7GtDXwFHCzMA0GCSqGSIb3DQEBAQUABIIBADcX0yh8
+# eHfzymO0T7W3Hba6mrqG0BoihuASgnX93/TzLNCuT5e18vb/wzUw/kxDgEI1oIGf
+# eIJs2mbuRp8KUcGdoDks63xFPvnKap9K8uUJia5CLdfQ+0JM6n+pKjvzUgSsegsI
+# vvFXfcVJQUsZepSHhndg3oZnFrVZGx4vnmhU86ABlgqca245exq+Pel7IufeZnbt
+# z7kGhIAmEhjGxZaKlas3GfLogtnXuLnxEpcS55bIi5GZEpwbTYMYiqmM05Nmw2Yw
+# KXf4o67v2TjLA7yIzS81oTXBhQHZJAtyfSaWBdbLMy8i7YbU1xVpyKqgZE0Hv3Oi
+# e0o+dVO9ZgfARVU=
 # SIG # End signature block
