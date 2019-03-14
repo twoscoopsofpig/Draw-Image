@@ -30,12 +30,6 @@ function Draw-Image
 	)
 
 	Add-Type -AssemblyName "System.Web"
-	$mimetype = [System.Web.MimeMapping]::GetMimeMapping($img)
-	if ($mimetype -notmatch "image")
-	{
-		gc $img
-		Return "`r`nTry using an image."
-	}
 	Add-Type -AssemblyName "System.Drawing"
 	if (test-path $img)
 	{
@@ -45,9 +39,15 @@ function Draw-Image
 	}
 	else
 	{
-		$pic = Invoke-WebRequest $img
+		$image = Invoke-WebRequest $img
 		$imageTarget = ($img -split "/")[-1]
-		$bitmap = [System.Drawing.Bitmap]::FromStream($pic.RawContentStream)
+		$bitmap = [System.Drawing.Bitmap]::FromStream($image.RawContentStream)
+	}
+	$mimetype = [System.Web.MimeMapping]::GetMimeMapping($image)
+	if ($mimetype -notmatch "image")
+	{
+		gc $img
+		Return "`r`nTry using an image."
 	}
 	if (!(test-path .\PSworking))
 	{
