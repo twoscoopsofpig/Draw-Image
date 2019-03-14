@@ -1,9 +1,10 @@
 # Draw-Image
-Original concepts by /u/NotNotWrongUsually, /u/punisher1005, and benoitpatra.com
-Cruelly abused and twisted by /u/twoscoopsofpig
-Use: 
-	Draw-Image "http://url.to.image/image.ext"
-	Draw-Image .\some\path\imagename.ext
+Original concepts by /u/NotNotWrongUsually, /u/punisher1005, and benoitpatra.com  
+Cruelly abused and twisted by /u/twoscoopsofpig  
+
+Use:  
+    Draw-Image "http://url.to.image/image.ext"  
+    Draw-Image .\some\path\imagename.ext  
 
 March 2019
 
@@ -13,7 +14,7 @@ This will handle local or Web-based images gracefully, and will resize them to f
 
 As is tradition, error-handling is barely a thing, but the code is at least signed, so RemoteSigned is fine for exec policy.
 
-Credit to:
-	u/NotNotWrongUsually for the original Draw-Color function that kicked this off, and some speed optimizations
-	u/punisher1005 for the bitmap transforms that made drawing an image possible
-	benoitpatra.com for the resizing portion
+Credit to:  
+    u/NotNotWrongUsually for the original Draw-Color function that kicked this off, and some speed optimizations  
+    u/punisher1005 for the bitmap transforms that made drawing an image possible  
+    benoitpatra.com for the resizing portion  
