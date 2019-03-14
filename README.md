@@ -1,11 +1,11 @@
 # Draw-Image
-# Original concepts by /u/NotNotWrongUsually, /u/punisher1005, and benoitpatra.com
-# Cruelly abused and twisted by /u/twoscoopsofpig
-# Use by typing: 
-#	Draw-Image "http://url.to.image/image.ext"
-#	Draw-Image .\some\path\imagename.ext
-#
-# Date: 2019-03-12 and 2019-03-13
+Original concepts by /u/NotNotWrongUsually, /u/punisher1005, and benoitpatra.com
+Cruelly abused and twisted by /u/twoscoopsofpig
+Use: 
+	Draw-Image "http://url.to.image/image.ext"
+	Draw-Image .\some\path\imagename.ext
+
+March 2019
 
 Based on the flurry of WE CAN DRAW IMAGES IN THE CONSOLE? over the past few days on r/powershell, I've combined some bits from others to put this together.
 
