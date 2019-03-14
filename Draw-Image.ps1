@@ -31,7 +31,7 @@ function Draw-Image
 
 	Add-Type -AssemblyName "System.Web"
 	Add-Type -AssemblyName "System.Drawing"
-	if (test-path $img)
+	if ([bool](test-path $img))
 	{
 		$image = get-item $img
 		$imageTarget = $image.name
@@ -43,7 +43,7 @@ function Draw-Image
 		$imageTarget = ($img -split "/")[-1]
 		$bitmap = [System.Drawing.Bitmap]::FromStream($image.RawContentStream)
 	}
-	$mimetype = [System.Web.MimeMapping]::GetMimeMapping($image)
+	$mimetype = [System.Web.MimeMapping]::GetMimeMapping($img)
 	if ($mimetype -notmatch "image")
 	{
 		gc $img
@@ -119,8 +119,8 @@ function Draw-Image
 # SIG # Begin signature block
 # MIIL1wYJKoZIhvcNAQcCoIILyDCCC8QCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU49FpLagwIYUtLj1prI/EwP5o
-# tfGgggkzMIIEQzCCAyugAwIBAgITFAAAAALkqAddBvs0iQAAAAAAAjANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUq+j4EnQK+N/Ka39oSVebbv3A
+# lmOgggkzMIIEQzCCAyugAwIBAgITFAAAAALkqAddBvs0iQAAAAAAAjANBgkqhkiG
 # 9w0BAQsFADAgMR4wHAYDVQQDExVTbWl0aCBCdXJnZXNzIFJvb3QgQ0EwHhcNMTgw
 # OTAzMTczMDAzWhcNMjgwOTAzMTc0MDAzWjBWMRMwEQYKCZImiZPyLGQBGRYDbmV0
 # MRwwGgYKCZImiZPyLGQBGRYMc21pdGhidXJnZXNzMSEwHwYDVQQDExhTbWl0aCBC
@@ -174,11 +174,11 @@ function Draw-Image
 # ZXNzIElzc3VpbmcgQ0ECExIAABwcndyQYNoVrooAAAAAHBwwCQYFKw4DAhoFAKB4
 # MBgGCisGAQQBgjcCAQwxCjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQB
 # gjcCAQQwHAYKKwYBBAGCNwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkE
-# MRYEFDh9hZTAbCf1f34lPEx381Xi1SfxMA0GCSqGSIb3DQEBAQUABIIBACkISvNz
-# Ct/uzBs6iQBjCe2HrY9XiRIJ+Ug674uKB65Ad5pLv0gyP8pFQu7WGuM9J+bKY/Le
-# ufMtH1ZayCjc/9WF6FdghlDxq42pVh89OMhELUx1ShGZTgyPPdfsDeyWODQHdt2x
-# ZISHpfCzBhYRx3Q1XuhITDa9WDGXjgqP0S1mp1SEbmDM1sBe8JtsH0jH1G0yhi+y
-# 0QXSnRaWxMeJZ8DZZttMggdWzVfRAFAEtB1RizekSBjida3w2uBzQPGe+9WuGZwM
-# SXcU/ZnygfS8PxoCQtzxqsVn2WZR1ISVv+Xk8IXir8GG98N9GoC7Mb9WqlCAcDBW
-# /T1jnqWjwYJfVHA=
+# MRYEFFS4IckCEmJBu23m0V+W7MlUccsrMA0GCSqGSIb3DQEBAQUABIIBAEsUg50f
+# CIh0qRFsh3cZB7En02HynXVLn27JUcOeeRJkqQK48qVOjtJmo7L+ytf1oHE7Q9+X
+# Qu9yyMK4BxSzyHCafsYBwyCpKxOx2aA6oQVryQilnJUoUxJv+ZhCgDmoiQBnLHa/
+# 0kY+s3Y9t5gaxpp3YCcZi28NJ93AAFkByD4a08lk02N3++pJYqxbkm85Yu034F6M
+# 6KlizSQrCjhKqcRxwFBVHPt18B4dmzp5UyNNhHrk/ckE72Tx5Gy5FJVtBH0WahX4
+# dBGz/RI1ovD+/86wsxOY5usblALy0Kie79tEk7JeqhzlJYnA7DiSNOQXY0R5BBNM
+# 74yDqytJylH+OBA=
 # SIG # End signature block
