@@ -1,4 +1,4 @@
-# Original concepts by /u/NotNotWrongUsually, /u/punisher1005, and benoitpatra.com
+# Original concepts by /u/NotNotWrongUsually, /u/punisher1005, /u/Nation_State_Tractor, and benoitpatra.com
 # Cruelly abused and twisted by /u/twoscoopsofpig
 # Use by typing: 
 #	Draw-Image "http://url.to.image/image.ext"
@@ -6,6 +6,181 @@
 #
 # Date: 2019-03-12 and 2019-03-13
 
+# Prep for font changes - Credit to /u/Nation_State_Tractor
+if (-not ("Windows.Native.Kernel32" -as [type]))
+{
+	Add-Type -TypeDefinition @"
+		namespace Windows.Native
+		{
+			using System;
+			using System.ComponentModel;
+			using System.IO;
+			using System.Runtime.InteropServices;
+			
+			public class Kernel32
+			{
+				// Constants
+				////////////////////////////////////////////////////////////////////////////
+				public const uint FILE_SHARE_READ = 1;
+				public const uint FILE_SHARE_WRITE = 2;
+				public const uint GENERIC_READ = 0x80000000;
+				public const uint GENERIC_WRITE = 0x40000000;
+				public static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+				public const int STD_ERROR_HANDLE = -12;
+				public const int STD_INPUT_HANDLE = -10;
+				public const int STD_OUTPUT_HANDLE = -11;
+
+				// Structs
+				////////////////////////////////////////////////////////////////////////////
+				[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+				public class CONSOLE_FONT_INFOEX
+				{
+					private int cbSize;
+					public CONSOLE_FONT_INFOEX()
+					{
+						this.cbSize = Marshal.SizeOf(typeof(CONSOLE_FONT_INFOEX));
+					}
+
+					public int FontIndex;
+					public short FontWidth;
+					public short FontHeight;
+					public int FontFamily;
+					public int FontWeight;
+					[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+					public string FaceName;
+				}
+
+				public class Handles
+				{
+					public static readonly IntPtr StdIn = GetStdHandle(STD_INPUT_HANDLE);
+					public static readonly IntPtr StdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+					public static readonly IntPtr StdErr = GetStdHandle(STD_ERROR_HANDLE);
+				}
+				
+				// P/Invoke function imports
+				////////////////////////////////////////////////////////////////////////////
+				[DllImport("kernel32.dll", SetLastError=true)]
+				public static extern bool CloseHandle(IntPtr hHandle);
+				
+				[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+				public static extern IntPtr CreateFile
+					(
+					[MarshalAs(UnmanagedType.LPTStr)] string filename,
+					uint access,
+					uint share,
+					IntPtr securityAttributes, // optional SECURITY_ATTRIBUTES struct or IntPtr.Zero
+					[MarshalAs(UnmanagedType.U4)] FileMode creationDisposition,
+					uint flagsAndAttributes,
+					IntPtr templateFile
+					);
+					
+				[DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+				public static extern bool GetCurrentConsoleFontEx
+					(
+					IntPtr hConsoleOutput, 
+					bool bMaximumWindow, 
+					// the [In, Out] decorator is VERY important!
+					[In, Out] CONSOLE_FONT_INFOEX lpConsoleCurrentFont
+					);
+					
+				[DllImport("kernel32.dll", SetLastError=true)]
+				public static extern IntPtr GetStdHandle(int nStdHandle);
+				
+				[DllImport("kernel32.dll", SetLastError=true)]
+				public static extern bool SetCurrentConsoleFontEx
+					(
+					IntPtr ConsoleOutput, 
+					bool MaximumWindow,
+					// Again, the [In, Out] decorator is VERY important!
+					[In, Out] CONSOLE_FONT_INFOEX ConsoleCurrentFontEx
+					);
+				
+				
+				// Wrapper functions
+				////////////////////////////////////////////////////////////////////////////
+				public static IntPtr CreateFile(string fileName, uint fileAccess, 
+					uint fileShare, FileMode creationDisposition)
+				{
+					IntPtr hFile = CreateFile(fileName, fileAccess, fileShare, IntPtr.Zero, 
+						creationDisposition, 0U, IntPtr.Zero);
+					if (hFile == INVALID_HANDLE_VALUE)
+					{
+						throw new Win32Exception();
+					}
+
+					return hFile;
+				}
+
+				public static CONSOLE_FONT_INFOEX GetCurrentConsoleFontEx()
+				{
+					IntPtr hFile = IntPtr.Zero;
+					try
+					{
+						hFile = CreateFile("CONOUT$", GENERIC_READ,
+						FILE_SHARE_READ | FILE_SHARE_WRITE, FileMode.Open);
+						return GetCurrentConsoleFontEx(hFile);
+					}
+					finally
+					{
+						CloseHandle(hFile);
+					}
+				}
+
+				public static void SetCurrentConsoleFontEx(CONSOLE_FONT_INFOEX cfi)
+				{
+					IntPtr hFile = IntPtr.Zero;
+					try
+					{
+						hFile = CreateFile("CONOUT$", GENERIC_READ | GENERIC_WRITE,
+							FILE_SHARE_READ | FILE_SHARE_WRITE, FileMode.Open);
+						SetCurrentConsoleFontEx(hFile, false, cfi);
+					}
+					finally
+					{
+						CloseHandle(hFile);
+					}
+				}
+
+				public static CONSOLE_FONT_INFOEX GetCurrentConsoleFontEx
+					(
+					IntPtr outputHandle
+					)
+				{
+					CONSOLE_FONT_INFOEX cfi = new CONSOLE_FONT_INFOEX();
+					if (!GetCurrentConsoleFontEx(outputHandle, false, cfi))
+					{
+						throw new Win32Exception();
+					}
+
+					return cfi;
+				}
+			}
+		}
+"@
+}
+
+# Set arbitrary font for better detail - Credit to /u/Nation_State_Tractor
+function Set-ConsoleFont
+{
+	[CmdletBinding()]
+	param
+	(
+		[Parameter(Mandatory=$true, Position=0)]
+		[string] $Name,
+		[Parameter(Mandatory=$true, Position=1)]
+		[int] $Height
+	)
+
+	$cfi = [Windows.Native.Kernel32]::GetCurrentConsoleFontEx()
+	$cfi.FontIndex = 0
+	$cfi.FontFamily = 0
+	$cfi.FaceName = $Name
+	$cfi.FontWidth = [int]($Height / 2)
+	$cfi.FontHeight = $Height
+	[Windows.Native.Kernel32]::SetCurrentConsoleFontEx($cfi)
+}
+
+# Draw a single 1 x 1 pixel in any color
 Function Draw-Color
 {
 	# Original concepts by /u/NotNotWrongUsually
@@ -22,11 +197,13 @@ Function Draw-Color
 	Return $out
 }
 
+# Draw any image, local or on the web, resized to fit the console in full color
 function Draw-Image
 {
 	# Original concepts by /u/punisher1005, and benoitpatra.com
 	param(
-		[String] $img = "https://upload.wikimedia.org/wikipedia/en/f/ff/SuccessKid.jpg"
+		[String] $img = "https://upload.wikimedia.org/wikipedia/en/f/ff/SuccessKid.jpg",
+		[switch] $return
 	)
 
 	Add-Type -AssemblyName "System.Web"
@@ -49,6 +226,7 @@ function Draw-Image
 		gc $img
 		Return "`r`nTry using an image."
 	}
+	cd c:
 	if (!(test-path .\PSworking))
 	{
 		md .\PSworking
@@ -92,30 +270,49 @@ function Draw-Image
 		$bitmapResized.Save($($imageResizedTarget -replace "\\","\\\\"), $myImageCodecInfo, $encoderParams)
 		$graph.Dispose()
 		$bitmapResized.Dispose()
+		$bitmap.dispose()
+		$bitmap = [System.Drawing.Bitmap]::FromFile($imageResizedTarget)
 	}
-	$bitmap.dispose()
-	$bitmap = [System.Drawing.Bitmap]::FromFile($imageResizedTarget)
 
 	$ansi_escape = [char]27
 
-	$color_string = ""
+	$color_string = $returnString = ""
 
+	Set-ConsoleFont Terminal 4
 	Foreach ($y in (0..($BitMap.Height-1)))
-	{ 
+	{
 		$color_string += "`n"
 		Foreach ($x in (0..($BitMap.Width-1)))
 		{ 
-			$Pixel = $BitMap.GetPixel($X,$Y)         
+			$Pixel = $BitMap.GetPixel($X,$Y)				 
 			$color_string += Draw-Color -r $($Pixel).R -g $($Pixel).G -b $($Pixel).B
+		}
+		if ($return)
+		{
+			Write-Progress "Drawing image '$img'" -Status "Rendering row $y/$($BitMap.Height-1)" -percentcomplete (100 * ($y/$($BitMap.Height-1)))
+			$returnString += $color_string
+			$color_string = ""
+		}
+		else
+		{
+			Write-Host $color_string -nonewline
+			$color_string = ""
 		}
 	}
 
 	$bitmap.dispose()
-	rm $imageResizedTarget
+	if (test-path $imageResizedTarget)
+	{
+		rm $imageResizedTarget
+	}
 	rm $imageTarget
 
-	Return $color_string
+	if ($return)
+	{
+		Return $returnString
+	}
 }
+
 # SIG # Begin signature block
 # MIIL1wYJKoZIhvcNAQcCoIILyDCCC8QCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
